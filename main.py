@@ -1,6 +1,6 @@
-import lib.command
+from lib.command import run_command
 def main():
-    pass
+    run_command('touch dupa')
 
 if __name__== '__main__':
     main()
