@@ -1,9 +1,7 @@
 
 import archinstall, getpass
 
-# Unmount and close previous runs
 archinstall.sys_command(f'umount -R /mnt', surpress_errors=True)
-archinstall.sys_command(f'cryptsetup close /dev/mapper/luksloop', surpress_errors=True)
 
 # Select a harddrive and a disk password
 harddrive = archinstall.select_disk(archinstall.all_disks())
