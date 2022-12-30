@@ -2,7 +2,7 @@ import os, json, hashlib, shlex
 import time, pty
 from subprocess import Popen, STDOUT, PIPE, check_output
 from select import epoll, EPOLLIN, EPOLLHUP
-from exceptions import RequirementError
+from .exceptions import RequirementError
 
 def log(*args, **kwargs):
 	print(' '.join([str(x) for x in args]))
@@ -90,7 +90,6 @@ class sys_command():#Thread):
 		os.chdir(self.exec_dir)
 		self.pid, child_fd = pty.fork()
 		if not self.pid: # Child process
-			# Replace child process with our main process
 			if not self.kwargs['emulate']:
 				try:
 					os.execv(self.cmd[0], self.cmd)
