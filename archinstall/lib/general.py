@@ -25,9 +25,6 @@ def multisplit(s, splitters):
 	return s
 
 class sys_command():#Thread):
-	"""
-	Stolen from archinstall_gui
-	"""
 	def __init__(self, cmd, callback=None, start_callback=None, *args, **kwargs):
 		if not 'worker_id' in kwargs: kwargs['worker_id'] = gen_uid()
 		if not 'emulate' in kwargs: kwargs['emulate'] = False
@@ -56,9 +53,7 @@ class sys_command():#Thread):
 		self.exec_dir = f'{self.cwd}/{os.path.basename(self.cmd[0])}_workingdir'
 
 		if not self.cmd[0][0] == '/':
-			#log('Worker command is not executed with absolute path, trying to find: {}'.format(self.cmd[0]), origin='spawn', level=5)
 			o = check_output(['/usr/bin/which', self.cmd[0]])
-			#log('This is the binary {} for {}'.format(o.decode('UTF-8'), self.cmd[0]), origin='spawn', level=5)
 			self.cmd[0] = o.decode('UTF-8').strip()
 
 		if not os.path.isdir(self.exec_dir):
