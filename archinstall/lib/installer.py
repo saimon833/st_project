@@ -39,37 +39,37 @@ class Installer():
 			log(f'Could not sync mirrors: {sync_mirrors.exit_code}')
 
 	def minimal_installation(self):
-		return self.pacstrap('base base-devel linux linux-firmware btrfs-progs efibootmgr nano wpa_supplicant dialog'.split(' '))
+		return self.pacstrap('base base-devel linux linux-firmware btrfs-progs efibootmgr nano wpa_supplicant dialog grub'.split(' '))
 
 	def add_bootloader(self, partition):
 		log(f'Adding bootloader to {partition}')
 		os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
 		partition.mount(f'{self.mountpoint}/boot')
-		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} bootctl --no-variables --path=/boot install'))
-
-		with open(f'{self.mountpoint}/boot/loader/loader.conf', 'w') as loader:
-			loader.write('default arch\n')
-			loader.write('timeout 5\n')
-
-		## For some reason, blkid and /dev/disk/by-uuid are not getting along well.
-		## And blkid is wrong in terms of LUKS.
-		#UUID = sys_command('blkid -s PARTUUID -o value {drive}{partition_2}'.format(**args)).decode('UTF-8').strip()
-		with open(f'{self.mountpoint}/boot/loader/entries/arch.conf', 'w') as entry:
-			entry.write('title Arch Linux\n')
-			entry.write('linux /vmlinuz-linux\n')
-			entry.write('initrd /initramfs-linux.img\n')
-			## blkid doesn't trigger on loopback devices really well,
-			## so we'll use the old manual method until we get that sorted out.
-			# UUID = simple_command(f"blkid -s PARTUUID -o value /dev/{os.path.basename(args['drive'])}{args['partitions']['2']}").decode('UTF-8').strip()
-			# entry.write('options root=PARTUUID={UUID} rw intel_pstate=no_hwp\n'.format(UUID=UUID))
-			for root, folders, uids in os.walk('/dev/disk/by-uuid'):
-				for uid in uids:
-					real_path = os.path.realpath(os.path.join(root, uid))
-					if not os.path.basename(real_path) == os.path.basename(partition.path): continue
-
-					entry.write(f'options cryptdevice=UUID={uid}:luksdev root=/dev/mapper/luksdev rw intel_pstate=no_hwp\n')
-					return True
-				break
+		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB'))
+#
+#		with open(f'{self.mountpoint}/boot/loader/loader.conf', 'w') as loader:
+#			loader.write('default arch\n')
+#			loader.write('timeout 5\n')
+#
+#		## For some reason, blkid and /dev/disk/by-uuid are not getting along well.
+#		## And blkid is wrong in terms of LUKS.
+#		#UUID = sys_command('blkid -s PARTUUID -o value {drive}{partition_2}'.format(**args)).decode('UTF-8').strip()
+#		with open(f'{self.mountpoint}/boot/loader/entries/arch.conf', 'w') as entry:
+#			entry.write('title Arch Linux\n')
+#			entry.write('linux /vmlinuz-linux\n')
+#			entry.write('initrd /initramfs-linux.img\n')
+#			## blkid doesn't trigger on loopback devices really well,
+#			## so we'll use the old manual method until we get that sorted out.
+#			# UUID = simple_command(f"blkid -s PARTUUID -o value /dev/{os.path.basename(args['drive'])}{args['partitions']['2']}").decode('UTF-8').strip()
+#			# entry.write('options root=PARTUUID={UUID} rw intel_pstate=no_hwp\n'.format(UUID=UUID))
+#			for root, folders, uids in os.walk('/dev/disk/by-uuid'):
+#				for uid in uids:
+#					real_path = os.path.realpath(os.path.join(root, uid))
+#					if not os.path.basename(real_path) == os.path.basename(partition.path): continue
+#
+#					entry.write(f'options cryptdevice=UUID={uid}:luksdev root=/dev/mapper/luksdev rw intel_pstate=no_hwp\n')
+#					return True
+#				break
 		raise RequirementError(f'Could not identify the UUID of {partition}, there for {self.mountpoint}/boot/loader/entries/arch.conf will be broken until fixed.')
 
 	def add_additional_packages(self, *packages):
