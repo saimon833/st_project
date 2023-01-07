@@ -167,7 +167,10 @@ class Filesystem():
 		self.set_name(0, 'EFI')
 		self.set(0, 'boot on')
 		self.set(0, 'esp on') # TODO: Redundant, as in GPT mode it's an alias for "boot on"? https://www.gnu.org/software/parted/manual/html_node/set.html
-		self.add_partition('primary', start='513MiB', end='100%', format='ext4')
+		if prep_mode == 'luks2':
+			self.add_partition('primary', start='513MiB', end='100%')
+		else:
+			self.add_partition('primary', start='513MiB', end='100%', format='ext4')
 
 	def add_partition(self, type, start, end, format=None):
 		log(f'Adding partition to {self.blockdevice}')
