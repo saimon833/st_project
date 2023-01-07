@@ -45,6 +45,7 @@ class Installer():
 		log(f'Adding bootloader to {partition}')
 		os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
 		partition.mount(f'{self.mountpoint}/boot')
+		o = b''.join(sys_command(f'genfstab -U /mnt >> /mnt/etc/fstab'))
 		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB'))
 		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
 #
@@ -71,7 +72,7 @@ class Installer():
 #					entry.write(f'options cryptdevice=UUID={uid}:luksdev root=/dev/mapper/luksdev rw intel_pstate=no_hwp\n')
 #					return True
 #				break
-		raise RequirementError(f'Could not identify the UUID of {partition}, there for {self.mountpoint}/boot/loader/entries/arch.conf will be broken until fixed.')
+#		raise RequirementError(f'Could not identify the UUID of {partition}, there for {self.mountpoint}/boot/loader/entries/arch.conf will be broken until fixed.')
 
 	def add_additional_packages(self, *packages):
 		self.pacstrap(*packages)
