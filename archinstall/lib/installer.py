@@ -46,7 +46,10 @@ class Installer():
     def generate_fstab(self):
         log(sys_command(f'genfstab -U {self.mountpoint}'))
         fstab_raw = sys_command(f'genfstab -U {self.mountpoint} >> {self.mountpoint}/etc/fstab').decode()
-        print(fstab_raw)
+        fstab: str = ''
+        for i in fstab_raw:
+            fstab += i
+        print(fstab)
 
     def add_bootloader(self, partition):
         log(f'Adding bootloader to {partition}')
