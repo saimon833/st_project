@@ -43,6 +43,9 @@ class Installer():
         else:
             log(f'Could not sync mirrors: {sync_mirrors.exit_code}')
 
+    def chroot(self,cmd):
+        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} {cmd}'))
+
     def genfstab(self, flags='-Pu'):
         o = b''.join(sys_command(f'/usr/bin/genfstab -pU {self.mountpoint} >> {self.mountpoint}/etc/fstab'))
         if not os.path.isfile(f'{self.mountpoint}/etc/fstab'):

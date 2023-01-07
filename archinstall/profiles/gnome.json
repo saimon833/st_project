@@ -1,0 +1,7 @@
+{
+  "packages": "gnome",
+  "commands": [
+    "systemctl enable gdm",
+    "mkdir /data"
+  ]
+}
