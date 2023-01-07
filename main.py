@@ -10,7 +10,9 @@ def perform_installation(device, boot_partition):
 	hostname = input('Desired hostname for the installation: ')
 	with archinstall.Installer(device, hostname=hostname) as installation:
 		if installation.minimal_installation():
-			installation.add_bootloader(boot_partition, device)
+			root_path = harddrive.partition[1].path
+			boot_path = harddrive.partition[0].path
+			installation.add_bootloader(boot_partition, boot_path, root_path)
 
 			packages = input('Additional packages aside from base (space separated): ').split(' ')
 			if len(packages) and packages[0] != '':

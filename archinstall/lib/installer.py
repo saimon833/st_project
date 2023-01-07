@@ -52,11 +52,11 @@ class Installer:
             uuid = sys_command(f'blkid -s UUID -o value {boot}').decode()
             fstab.write(f'UUID="{uuid}\t /boot\t ext4\t rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro\t 0 2\n')
 
-    def add_bootloader(self, boot_partition, root):
+    def add_bootloader(self, boot_partition, boot, root):
         log(f'Adding bootloader to {boot_partition}')
         os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
         boot_partition.mount(f'{self.mountpoint}/boot')
-        self.generate_fstab(boot_partition,root)
+        self.generate_fstab(boot, root)
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi '
                                  f'--efi-directory=/boot --bootloader-id=GRUB'))
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
