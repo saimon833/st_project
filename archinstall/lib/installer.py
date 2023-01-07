@@ -63,7 +63,7 @@ class Installer():
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} locale-gen')
 
     def minimal_installation(self):
-        self.pacstrap('base base-devel linux linux-firmware btrfs-progs efibootmgr nano'.split(' '))
+        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano'.split(' '))
         self.genfstab()
 
         with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
@@ -78,15 +78,6 @@ class Installer():
 
         # TODO: Use python functions for this
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
-
-        if self.partition.filesystem == 'btrfs':
-            with open(f'{self.mountpoint}/etc/mkinitcpio.conf', 'w') as mkinit:
-                ## TODO: Don't replace it, in case some update in the future actually adds something.
-                mkinit.write('MODULES=(btrfs)\n')
-                mkinit.write('BINARIES=(/usr/bin/btrfs)\n')
-                mkinit.write('FILES=()\n')
-                mkinit.write('HOOKS=(base udev autodetect modconf block encrypt filesystems keyboard fsck)\n')
-            sys_command(f'/usr/bin/arch-chroot {self.mountpoint} mkinitcpio -p linux')
 
         return True
 

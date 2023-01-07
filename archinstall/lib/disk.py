@@ -95,12 +95,7 @@ class Partition():
 
 	def format(self, filesystem):
 		log(f'Formatting {self} -> {filesystem}')
-		if filesystem == 'btrfs':
-			o = b''.join(sys_command(f'/usr/bin/mkfs.btrfs -f {self.path}'))
-			if not b'UUID' in o:
-				raise DiskError(f'Could not format {self.path} with {filesystem} because: {o}')
-			self.filesystem = 'btrfs'
-		elif filesystem == 'fat32':
+		if filesystem == 'fat32':
 			o = b''.join(sys_command(f'/usr/bin/mkfs.vfat -F32 {self.path}'))
 			if (b'mkfs.fat' not in o and b'mkfs.vfat' not in o) or b'command not found' in o:
 				raise DiskError(f'Could not format {self.path} with {filesystem} because: {o}')
