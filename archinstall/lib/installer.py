@@ -113,7 +113,7 @@ class Installer():
     def install_profile(self, profile):
         profile = Profile(self, profile)
 
-        log(f'Installing network profile {profile}')
+        log(f'Installing profile {profile.name}')
         profile.install()
 
     def user_create(self, user: str, password=None, groups=[]):
