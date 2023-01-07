@@ -7,15 +7,18 @@ from .user_interaction import *
 from .profiles import Profile
 
 class Installer():
-	def __init__(self, partition, *, profile=None, mountpoint='/mnt', hostname='ArchInstalled'):
+	def __init__(self, partition, boot_partition, *, profile=None, mountpoint='/mnt', hostname='ArchInstalled'):
 		self.profile = profile
 		self.hostname = hostname
 		self.mountpoint = mountpoint
 
 		self.partition = partition
+		self.boot_partition = boot_partition
 
 	def __enter__(self, *args, **kwargs):
 		self.partition.mount(self.mountpoint)
+		os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
+		self.boot_partition.mount(f'{self.mountpoint}/boot')
 		return self
 
 	def __exit__(self, *args, **kwargs):
@@ -26,27 +29,67 @@ class Installer():
 		log('Installation completed without any errors.', bg='black', fg='green')
 		return True
 
-	def pacstrap(self, *packages):
+	def pacstrap(self, *packages, **kwargs):
 		if type(packages[0]) in (list, tuple): packages = packages[0]
 		log(f'Installing packages: {packages}')
 
 		if (sync_mirrors := sys_command('/usr/bin/pacman -Syy')).exit_code == 0:
-			if (pacstrap := sys_command(f'/usr/bin/pacstrap {self.mountpoint} {" ".join(packages)}')).exit_code == 0:
+			if (pacstrap := sys_command(f'/usr/bin/pacstrap {self.mountpoint} {" ".join(packages)}', **kwargs)).exit_code == 0:
 				return True
 			else:
 				log(f'Could not strap in packages: {pacstrap.exit_code}')
 		else:
 			log(f'Could not sync mirrors: {sync_mirrors.exit_code}')
 
+	def genfstab(self, flags='-Pu'):
+		o = b''.join(sys_command(f'/usr/bin/genfstab -pU {self.mountpoint} >> {self.mountpoint}/etc/fstab'))
+		if not os.path.isfile(f'{self.mountpoint}/etc/fstab'):
+			raise RequirementError(f'Could not generate fstab, strapping in packages most likely failed (disk out of space?)\n{o}')
+		return True
+
+	def set_hostname(self, hostname=None):
+		if not hostname: hostname = self.hostname
+		with open(f'{self.mountpoint}/etc/hostname', 'w') as fh:
+			fh.write(self.hostname + '\n')
+
+	def set_locale(self, locale, encoding='UTF-8'):
+		with open(f'{self.mountpoint}/etc/locale.gen', 'a') as fh:
+			fh.write(f'{locale} {encoding}\n')
+		with open(f'{self.mountpoint}/etc/locale.conf', 'w') as fh:
+			fh.write(f'LANG={locale}\n')
+		sys_command(f'/usr/bin/arch-chroot {self.mountpoint} locale-gen')
+
 	def minimal_installation(self):
-		return self.pacstrap('base base-devel linux linux-firmware btrfs-progs efibootmgr nano wpa_supplicant dialog'.split(' '))
+		self.pacstrap('base base-devel linux linux-firmware btrfs-progs efibootmgr nano'.split(' '))
+		self.genfstab()
 
-	def add_bootloader(self, partition):
-		log(f'Adding bootloader to {partition}')
-		os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
-		partition.mount(f'{self.mountpoint}/boot')
+		with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
+			fstab.write('\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n') # Redundant \n at the start? who knoes?
+
+		## TODO: Support locale and timezone
+		#os.remove(f'{self.mountpoint}/etc/localtime')
+		#sys_command(f'/usr/bin/arch-chroot {self.mountpoint} ln -s /usr/share/zoneinfo/{localtime} /etc/localtime')
+		#sys_command('/usr/bin/arch-chroot /mnt hwclock --hctosys --localtime')
+		self.set_hostname()
+		self.set_locale('en_US.UTF-8')
+
+		# TODO: Use python functions for this
+		sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
+
+		if self.partition.filesystem == 'btrfs':
+			with open(f'{self.mountpoint}/etc/mkinitcpio.conf', 'w') as mkinit:
+				## TODO: Don't replace it, in case some update in the future actually adds something.
+				mkinit.write('MODULES=(btrfs)\n')
+				mkinit.write('BINARIES=(/usr/bin/btrfs)\n')
+				mkinit.write('FILES=()\n')
+				mkinit.write('HOOKS=(base udev autodetect modconf block encrypt filesystems keyboard fsck)\n')
+			sys_command(f'/usr/bin/arch-chroot {self.mountpoint} mkinitcpio -p linux')
+
+		return True
+
+	def add_bootloader(self):
+		log(f'Adding bootloader to {self.boot_partition}')
 		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} bootctl --no-variables --path=/boot install'))
-
 		with open(f'{self.mountpoint}/boot/loader/loader.conf', 'w') as loader:
 			loader.write('default arch\n')
 			loader.write('timeout 5\n')
@@ -60,17 +103,27 @@ class Installer():
 			entry.write('initrd /initramfs-linux.img\n')
 			## blkid doesn't trigger on loopback devices really well,
 			## so we'll use the old manual method until we get that sorted out.
-			# UUID = simple_command(f"blkid -s PARTUUID -o value /dev/{os.path.basename(args['drive'])}{args['partitions']['2']}").decode('UTF-8').strip()
-			# entry.write('options root=PARTUUID={UUID} rw intel_pstate=no_hwp\n'.format(UUID=UUID))
-			for root, folders, uids in os.walk('/dev/disk/by-uuid'):
-				for uid in uids:
-					real_path = os.path.realpath(os.path.join(root, uid))
-					if not os.path.basename(real_path) == os.path.basename(partition.path): continue
+			
 
-					entry.write(f'options cryptdevice=UUID={uid}:luksdev root=/dev/mapper/luksdev rw intel_pstate=no_hwp\n')
-					return True
-				break
-		raise RequirementError(f'Could not identify the UUID of {partition}, there for {self.mountpoint}/boot/loader/entries/arch.conf will be broken until fixed.')
+			if self.partition.encrypted:
+				for root, folders, uids in os.walk('/dev/disk/by-uuid'):
+					for uid in uids:
+						real_path = os.path.realpath(os.path.join(root, uid))
+						if not os.path.basename(real_path) == os.path.basename(self.partition.real_device): continue
+
+						entry.write(f'options cryptdevice=UUID={uid}:luksdev root=/dev/mapper/luksdev rw intel_pstate=no_hwp\n')
+						return True
+					break
+			else:
+				for root, folders, uids in os.walk('/dev/disk/by-partuuid'):
+					for uid in uids:
+						real_path = os.path.realpath(os.path.join(root, uid))
+						if not os.path.basename(real_path) == os.path.basename(self.partition.path): continue
+
+						entry.write(f'options root=PARTUUID={uid} rw intel_pstate=no_hwp\n')
+						return True
+					break
+		raise RequirementError(f'Could not identify the UUID of {self.partition}, there for {self.mountpoint}/boot/loader/entries/arch.conf will be broken until fixed.')
 
 	def add_additional_packages(self, *packages):
 		self.pacstrap(*packages)

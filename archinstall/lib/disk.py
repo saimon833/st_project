@@ -78,16 +78,20 @@ class BlockDevice():
 		return self.info[key]
 
 class Partition():
-	def __init__(self, path, part_id=None, size=-1, filesystem=None, mountpoint=None):
+	def __init__(self, path, part_id=None, size=-1, filesystem=None, mountpoint=None, encrypted=False):
 		if not part_id: part_id = os.path.basename(path)
 		self.path = path
 		self.part_id = part_id
 		self.mountpoint = mountpoint
 		self.filesystem = filesystem # TODO: Autodetect if we're reusing a partition
 		self.size = size # TODO: Refresh?
+		self.encrypted = encrypted
 
 	def __repr__(self, *args, **kwargs):
-		return f'Partition({self.path}, fs={self.filesystem}, mounted={self.mountpoint})'
+		if self.encrypted:
+			return f'Partition(path={self.path}, real_device={self.real_device}, fs={self.filesystem}, mounted={self.mountpoint})'
+		else:
+			return f'Partition(path={self.path}, fs={self.filesystem}, mounted={self.mountpoint})'
 
 	def format(self, filesystem):
 		log(f'Formatting {self} -> {filesystem}')
@@ -109,6 +113,24 @@ class Partition():
 			raise DiskError(f'Fileformat {filesystem} is not yet implemented.')
 		return True
 
+	def find_parent_of(self, data, name, parent=None):
+		if data['name'] == name:
+			return parent
+		elif 'children' in data:
+			for child in data['children']:
+				if (parent := self.find_parent_of(child, name, parent=data['name'])):
+					return parent
+
+	@property
+	def real_device(self):
+		if not self.encrypted:
+			return self.path
+		else:
+			for blockdevice in json.loads(b''.join(sys_command('lsblk -J')).decode('UTF-8'))['blockdevices']:
+				if (parent := self.find_parent_of(blockdevice, os.path.basename(self.path))):
+					return f"/dev/{parent}"
+			raise DiskError(f'Could not find appropriate parent for encrypted partition {self}')
+
 	def mount(self, target, fs=None, options=''):
 		if not self.mountpoint:
 			log(f'Mounting {self} to {target}')
@@ -123,7 +145,7 @@ class Partition():
 			if sys_command(f'/usr/bin/mount {self.path} {target}').exit_code == 0:
 				self.mountpoint = target
 				return True
-		
+
 class Filesystem():
 	# TODO:
 	#   When instance of a HDD is selected, check all usages and gracefully unmount them
