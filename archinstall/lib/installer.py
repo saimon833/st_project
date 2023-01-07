@@ -51,13 +51,8 @@ class Installer():
             fstab += i
         print(fstab)
         fstab_data = fstab.split('\n')
-        fstab_entries = []
-        for i in fstab_data:
-            if i.startswith('#'):
-                continue
-            fstab_entries.append(i)
         with open(f'{self.mountpoint}/etc/fstab','w') as config:
-            for i in fstab_entries:
+            for i in fstab_data:
                 config.write(f'{i}\n')
 
     def add_bootloader(self, partition):
