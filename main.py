@@ -9,9 +9,10 @@ harddrive = archinstall.select_disk(archinstall.all_disks())
 def perform_installation(device, boot_partition):
 	hostname = input('Desired hostname for the installation: ')
 	with archinstall.Installer(device, hostname=hostname) as installation:
+		installation.generate_fstab()
 		if installation.minimal_installation():
-			installation.add_bootloader(boot_partition)
 			installation.generate_fstab()
+			installation.add_bootloader(boot_partition)
 
 			packages = input('Additional packages aside from base (space separated): ').split(' ')
 			if len(packages) and packages[0] != '':
