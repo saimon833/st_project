@@ -50,11 +50,21 @@ class Installer():
         for i in fstab_raw:
             fstab += i
         print(fstab)
+        fstab_data = fstab.split('\n')
+        fstab_entries = []
+        for i in fstab_data:
+            if i.startswith('#'):
+                continue
+            fstab_entries.append(i)
+        with open(f'{self.mountpoint}/etc/fstab','w') as config:
+            for i in fstab_entries:
+                config.write(f'{i}\n')
 
     def add_bootloader(self, partition):
         log(f'Adding bootloader to {partition}')
         os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
         partition.mount(f'{self.mountpoint}/boot')
+        self.generate_fstab()
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi '
                                  f'--efi-directory=/boot --bootloader-id=GRUB'))
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
