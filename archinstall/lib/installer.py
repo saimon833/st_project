@@ -1,5 +1,5 @@
 import os, stat
-
+import re
 from .exceptions import *
 from .disk import *
 from .general import *
@@ -7,7 +7,7 @@ from .user_interaction import *
 from .profiles import Profile
 
 
-class Installer():
+class Installer:
     def __init__(self, partition, *, profile=None, mountpoint='/mnt', hostname='ArchInstalled'):
         self.profile = profile
         self.hostname = hostname
@@ -43,23 +43,20 @@ class Installer():
         return self.pacstrap(
             'base base-devel linux linux-firmware btrfs-progs efibootmgr nano wpa_supplicant dialog grub'.split(' '))
 
-    def generate_fstab(self):
-        log(sys_command(f'genfstab -U {self.mountpoint}'))
-        fstab_raw = sys_command(f'genfstab -U {self.mountpoint} >> {self.mountpoint}/etc/fstab').decode()
-        fstab: str = ''
-        for i in fstab_raw:
-            fstab += i
-        print(fstab)
-        fstab_data = fstab.split('\n')
-        with open(f'{self.mountpoint}/etc/fstab','w') as config:
-            for i in fstab_data:
-                config.write(f'{i}\n')
+    def generate_fstab(self,boot,root):
+        with open(f'{self.mountpoint}/etc/fstab', 'w') as fstab:
+            fstab.write(f'{root}#\n')
+            uuid = sys_command(f'blkid -s UUID -o value {root}').decode()
+            fstab.write(f'UUID="{uuid}\t /\t ext4\t rw,relatime \t0 1\n')
+            fstab.write(f'{boot}#\n')
+            uuid = sys_command(f'blkid -s UUID -o value {boot}').decode()
+            fstab.write(f'UUID="{uuid}\t /boot\t ext4\t rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro\t 0 2\n')
 
-    def add_bootloader(self, partition):
-        log(f'Adding bootloader to {partition}')
+    def add_bootloader(self, boot_partition, root):
+        log(f'Adding bootloader to {boot_partition}')
         os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
-        partition.mount(f'{self.mountpoint}/boot')
-        self.generate_fstab()
+        boot_partition.mount(f'{self.mountpoint}/boot')
+        self.generate_fstab(boot_partition,root)
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi '
                                  f'--efi-directory=/boot --bootloader-id=GRUB'))
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
