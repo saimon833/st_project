@@ -1,8 +1,14 @@
 class RequirementError(BaseException):
-	pass
+    pass
+
+
 class DiskError(BaseException):
-	pass
+    pass
+
+
 class ProfileError(BaseException):
-	pass
+    pass
+
+
 class SysCallError(BaseException):
-	pass
+    pass

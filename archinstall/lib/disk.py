@@ -95,12 +95,7 @@ class Partition():
 
 	def format(self, filesystem):
 		log(f'Formatting {self} -> {filesystem}')
-		if filesystem == 'btrfs':
-			o = b''.join(sys_command(f'/usr/bin/mkfs.btrfs -f {self.path}'))
-			if not b'UUID' in o:
-				raise DiskError(f'Could not format {self.path} with {filesystem} because: {o}')
-			self.filesystem = 'btrfs'
-		elif filesystem == 'fat32':
+		if filesystem == 'fat32':
 			o = b''.join(sys_command(f'/usr/bin/mkfs.vfat -F32 {self.path}'))
 			if (b'mkfs.fat' not in o and b'mkfs.vfat' not in o) or b'command not found' in o:
 				raise DiskError(f'Could not format {self.path} with {filesystem} because: {o}')
@@ -123,13 +118,7 @@ class Partition():
 
 	@property
 	def real_device(self):
-		if not self.encrypted:
-			return self.path
-		else:
-			for blockdevice in json.loads(b''.join(sys_command('lsblk -J')).decode('UTF-8'))['blockdevices']:
-				if (parent := self.find_parent_of(blockdevice, os.path.basename(self.path))):
-					return f"/dev/{parent}"
-			raise DiskError(f'Could not find appropriate parent for encrypted partition {self}')
+		return self.path
 
 	def mount(self, target, fs=None, options=''):
 		if not self.mountpoint:
@@ -189,10 +178,7 @@ class Filesystem():
 		self.set_name(0, 'EFI')
 		self.set(0, 'boot on')
 		self.set(0, 'esp on') # TODO: Redundant, as in GPT mode it's an alias for "boot on"? https://www.gnu.org/software/parted/manual/html_node/set.html
-		if prep_mode == 'luks2':
-			self.add_partition('primary', start='513MiB', end='100%')
-		else:
-			self.add_partition('primary', start='513MiB', end='100%', format='ext4')
+		self.add_partition('primary', start='513MiB', end='100%', format='ext4')
 
 	def add_partition(self, type, start, end, format=None):
 		log(f'Adding partition to {self.blockdevice}')
