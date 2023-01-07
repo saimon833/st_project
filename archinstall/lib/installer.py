@@ -46,6 +46,7 @@ class Installer():
 		os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
 		partition.mount(f'{self.mountpoint}/boot')
 		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB'))
+		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
 #
 #		with open(f'{self.mountpoint}/boot/loader/loader.conf', 'w') as loader:
 #			loader.write('default arch\n')
