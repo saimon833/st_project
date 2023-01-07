@@ -42,7 +42,12 @@ class Installer():
 		return self.pacstrap('base base-devel linux linux-firmware btrfs-progs efibootmgr nano wpa_supplicant dialog grub'.split(' '))
 	def generate_fstab(self):
 		log(sys_command(f'genfstab -U {self.mountpoint}'))
-		sys_command(f'genfstab -U {self.mountpoint} >> {self.mountpoint}/etc/fstab')
+		fstab_raw = sys_command(f'genfstab -U {self.mountpoint} >> {self.mountpoint}/etc/fstab')
+		output = fstab_raw[1]
+		print()
+		print(output)
+
+
 
 	def add_bootloader(self, partition):
 		log(f'Adding bootloader to {partition}')
