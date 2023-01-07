@@ -40,12 +40,14 @@ class Installer():
 
 	def minimal_installation(self):
 		return self.pacstrap('base base-devel linux linux-firmware btrfs-progs efibootmgr nano wpa_supplicant dialog grub'.split(' '))
+	def generate_fstab(self):
+		log(sys_command(f'genfstab -U {self.mountpoint}'))
+		sys_command(f'genfstab -U {self.mountpoint} >> {self.mountpoint}/etc/fstab')
 
 	def add_bootloader(self, partition):
 		log(f'Adding bootloader to {partition}')
 		os.makedirs(f'{self.mountpoint}/boot', exist_ok=True)
 		partition.mount(f'{self.mountpoint}/boot')
-		o = b''.join(sys_command(f'genfstab -U /mnt >> /mnt/etc/fstab'))
 		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB'))
 		o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
 #

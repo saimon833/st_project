@@ -11,6 +11,7 @@ def perform_installation(device, boot_partition):
 	with archinstall.Installer(device, hostname=hostname) as installation:
 		if installation.minimal_installation():
 			installation.add_bootloader(boot_partition)
+			installation.generate_fstab()
 
 			packages = input('Additional packages aside from base (space separated): ').split(' ')
 			if len(packages) and packages[0] != '':
