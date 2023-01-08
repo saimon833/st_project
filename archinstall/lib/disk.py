@@ -6,11 +6,6 @@ from .general import *
 ROOT_DIR_PATTERN = re.compile('^.*?/devices')
 GPT = 0b00000001
 
-#import ctypes
-#import ctypes.util
-#libc = ctypes.CDLL(ctypes.util.find_library('c'), use_errno=True)
-#libc.mount.argtypes = (ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_ulong, ctypes.c_char_p)
-
 class BlockDevice():
 	def __init__(self, path, info):
 		self.path = path
@@ -38,14 +33,10 @@ class BlockDevice():
 			if not 'pkname' in self.info: raise DiskError(f'A crypt device ({self.path}) without a parent kernel device name.')
 			return f"/dev/{self.info['pkname']}"
 
-	#	if not stat.S_ISBLK(os.stat(full_path).st_mode):
-	#		raise DiskError(f'Selected disk "{full_path}" is not a block device.')
-
 	@property
 	def partitions(self):
 		o = b''.join(sys_command(f'partprobe {self.path}'))
 
-		#o = b''.join(sys_command('/usr/bin/lsblk -o name -J -b {dev}'.format(dev=dev)))
 		o = b''.join(sys_command(f'/usr/bin/lsblk -J {self.path}'))
 		if b'not a block device' in o:
 			raise DiskError(f'Can not read partitions off something that isn\'t a block device: {self.path}')
@@ -59,7 +50,6 @@ class BlockDevice():
 			for part in r['blockdevices'][0]['children']:
 				part_id = part['name'][len(os.path.basename(self.path)):]
 				if part_id not in self.part_cache:
-					## TODO: Force over-write even if in cache?
 					self.part_cache[part_id] = Partition(root_path + part_id, part_id=part_id, size=part['size'])
 
 		return {k: self.part_cache[k] for k in sorted(self.part_cache)}
@@ -77,21 +67,17 @@ class BlockDevice():
 			raise KeyError(f'{self} does not contain information: "{key}"')
 		return self.info[key]
 
-class Partition():
-	def __init__(self, path, part_id=None, size=-1, filesystem=None, mountpoint=None, encrypted=False):
+class Partition:
+	def __init__(self, path, part_id=None, size=-1, filesystem=None, mountpoint=None):
 		if not part_id: part_id = os.path.basename(path)
 		self.path = path
 		self.part_id = part_id
 		self.mountpoint = mountpoint
 		self.filesystem = filesystem # TODO: Autodetect if we're reusing a partition
 		self.size = size # TODO: Refresh?
-		self.encrypted = encrypted
 
 	def __repr__(self, *args, **kwargs):
-		if self.encrypted:
-			return f'Partition(path={self.path}, real_device={self.real_device}, fs={self.filesystem}, mounted={self.mountpoint})'
-		else:
-			return f'Partition(path={self.path}, fs={self.filesystem}, mounted={self.mountpoint})'
+		return f'Partition(path={self.path}, fs={self.filesystem}, mounted={self.mountpoint})'
 
 	def format(self, filesystem):
 		log(f'Formatting {self} -> {filesystem}')

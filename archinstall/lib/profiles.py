@@ -8,7 +8,6 @@ class Profile:
 	def __init__(self, installer, name):
 		self.name = name
 		self.installer = installer
-		self._cache = None
 		self.packages = ''
 		self.commands = []
 

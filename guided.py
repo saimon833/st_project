@@ -51,6 +51,7 @@ time.sleep(1)
 
 def perform_installation(device, boot_partition):
     with archinstall.Installer(device, boot_partition=boot_partition, hostname=hostname) as installation:
+        archinstall.prerequisit_check()
         if installation.minimal_installation():
             installation.add_bootloader()
 

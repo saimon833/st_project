@@ -23,8 +23,6 @@ class Installer():
         return self
 
     def __exit__(self, *args, **kwargs):
-        # b''.join(sys_command(f'sync')) # No need to, since the underlaying fs() object will call sync.
-        # TODO: https://stackoverflow.com/questions/28157929/how-to-safely-handle-an-exception-inside-a-context-manager
         if len(args) >= 2 and args[1]:
             raise args[1]
         log('Installation completed without any errors.', bg='black', fg='green')

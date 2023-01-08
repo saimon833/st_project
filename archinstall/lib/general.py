@@ -17,24 +17,6 @@ def gen_uid(entropy_length=256):
     return hashlib.sha512(os.urandom(entropy_length)).hexdigest()
 
 
-def multisplit(s, splitters):
-    s = [s, ]
-    for key in splitters:
-        ns = []
-        for obj in s:
-            x = obj.split(key)
-            for index, part in enumerate(x):
-                if len(part):
-                    ns.append(part)
-                if index < len(x) - 1:
-                    ns.append(key)
-        s = ns
-    return s
-
-
-# Heavily influenced by: https://github.com/django/django/blob/ae8338daf34fd746771e0678081999b656177bae/django/utils
-# /termcolors.py#L13 Color options here: https://askubuntu.com/questions/528928/how-to-do-underline-bold-italic
-# -strikethrough-color-background-and-size-i
 def stylize_output(text: str, *opts, **kwargs):
     opt_dict = {'bold': '1', 'italic': '3', 'underscore': '4', 'blink': '5', 'reverse': '7', 'conceal': '8'}
     color_names = ('black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white')
@@ -58,9 +40,6 @@ def stylize_output(text: str, *opts, **kwargs):
     return '%s%s' % (('\x1b[%sm' % ';'.join(code_list)), text or '')
 
 
-# Found first reference here: https://stackoverflow.com/questions/7445658/how-to-detect-if-the-console-does-support
-# -ansi-escape-codes-in-python And re-used this:
-# https://github.com/django/django/blob/master/django/core/management/color.py#L12
 def supports_color():
     """
 	Return True if the running system's terminal supports color,
@@ -137,18 +116,6 @@ class sys_command():  # Thread):
 
     def decode(self, fmt='UTF-8'):
         return self.trace_log.decode(fmt)
-
-    def dump(self):
-        return {
-            'status': self.status,
-            'worker_id': self.worker_id,
-            'worker_result': self.trace_log.decode('UTF-8'),
-            'started': self.started,
-            'ended': self.ended,
-            'started_pprint': '{}-{}-{} {}:{}:{}'.format(*time.localtime(self.started)),
-            'ended_pprint': '{}-{}-{} {}:{}:{}'.format(*time.localtime(self.ended)) if self.ended else None,
-            'exit_code': self.exit_code
-        }
 
     def run(self):
         self.status = 'running'
