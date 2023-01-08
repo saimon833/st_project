@@ -104,7 +104,7 @@ class Installer():
         if groups:
             for group in groups:
                 o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} gpasswd -a {user} {group}'))
-        with open(f'{self.mountpoint}/etc/sudoers.d/{user}') as sudo:
+        with open(f'{self.mountpoint}/etc/sudoers.d/{user}','w') as sudo:
             sudo.write(f'{user} ALL=(ALL) ALL\n')
 
     def user_set_pw(self, user, password):
