@@ -66,7 +66,7 @@ class Installer():
     def minimal_installation(self):
         self.pacstrap('base base-devel linux linux-firmware efibootmgr nano networkmanager grub'.split(' '))
         self.genfstab()
-
+        
         with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
             fstab.write('\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n')  # Redundant \n at the start? who knoes?
 
@@ -79,7 +79,8 @@ class Installer():
         self.chroot('systemctl enable NetworkManager')
         # TODO: Use python functions for this
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
-
+        log(f'Adding wheel group to sudo')
+        self.chroot(f"sed -i 's/^#\s*\(%wheel\s*ALL=(ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers")
         return True
 
     def add_bootloader(self):
