@@ -64,9 +64,9 @@ class Installer():
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} locale-gen')
 
     def minimal_installation(self):
-        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano networkmanager'.split(' '))
+        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano networkmanager grub'.split(' '))
         self.genfstab()
-
+        
         with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
             fstab.write('\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n')  # Redundant \n at the start? who knoes?
 
@@ -79,31 +79,16 @@ class Installer():
         self.chroot('systemctl enable NetworkManager')
         # TODO: Use python functions for this
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
-
+        log(f'Adding wheel group to sudo')
+        self.chroot(f"sed -i 's/^#\s*\(%wheel\s*ALL=(ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers")
         return True
 
     def add_bootloader(self):
         log(f'Adding bootloader to {self.boot_partition}')
-        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} bootctl --no-variables --path=/boot install'))
-        with open(f'{self.mountpoint}/boot/loader/loader.conf', 'w') as loader:
-            loader.write('default arch\n')
-            loader.write('timeout 5\n')
-
-        with open(f'{self.mountpoint}/boot/loader/entries/arch.conf', 'w') as entry:
-            entry.write('title Arch Linux\n')
-            entry.write('linux /vmlinuz-linux\n')
-            entry.write('initrd /initramfs-linux.img\n')
-
-            for root, folders, uids in os.walk('/dev/disk/by-partuuid'):
-                for uid in uids:
-                    real_path = os.path.realpath(os.path.join(root, uid))
-                    if not os.path.basename(real_path) == os.path.basename(self.partition.path): continue
-
-                    entry.write(f'options root=PARTUUID={uid} rw intel_pstate=no_hwp\n')
-                    return True
-                break
-        raise RequirementError(
-            f'Could not identify the UUID of {self.partition}, there for {self.mountpoint}/boot/loader/entries/arch.conf will be broken until fixed.')
+        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi '
+                                 f'--efi-directory=/boot --bootloader-id=GRUB'))
+        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
+        log(f'Done')
 
     def add_additional_packages(self, *packages):
         self.pacstrap(*packages)
