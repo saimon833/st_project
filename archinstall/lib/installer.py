@@ -79,8 +79,6 @@ class Installer():
         self.chroot('systemctl enable NetworkManager')
         # TODO: Use python functions for this
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
-        log(f'Adding wheel group to sudo')
-        self.chroot(f"sed -i 's/^#\s*\(%wheel\s*ALL=(ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers")
         return True
 
     def add_bootloader(self):
@@ -88,7 +86,6 @@ class Installer():
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi '
                                  f'--efi-directory=/boot --bootloader-id=GRUB'))
         o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
-        log(f'Done')
 
     def add_additional_packages(self, *packages):
         self.pacstrap(*packages)
@@ -107,6 +104,8 @@ class Installer():
         if groups:
             for group in groups:
                 o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} gpasswd -a {user} {group}'))
+        with open(f'{self.mountpoint}/etc/sudoers.d/{user}') as sudo:
+            sudo.write(f'{user} ALL=(ALL) ALL\n')
 
     def user_set_pw(self, user, password):
         log(f'Setting password for {user}')
