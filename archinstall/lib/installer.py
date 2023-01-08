@@ -43,6 +43,9 @@ class Installer():
         else:
             log(f'Could not sync mirrors: {sync_mirrors.exit_code}')
 
+    def chroot(self,cmd):
+        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} {cmd}'))
+
     def genfstab(self, flags='-Pu'):
         o = b''.join(sys_command(f'/usr/bin/genfstab -pU {self.mountpoint} >> {self.mountpoint}/etc/fstab'))
         if not os.path.isfile(f'{self.mountpoint}/etc/fstab'):
@@ -63,7 +66,7 @@ class Installer():
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} locale-gen')
 
     def minimal_installation(self):
-        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano'.split(' '))
+        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano networkmanager'.split(' '))
         self.genfstab()
 
         with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
@@ -75,7 +78,7 @@ class Installer():
         # sys_command('/usr/bin/arch-chroot /mnt hwclock --hctosys --localtime')
         self.set_hostname()
         self.set_locale('en_US.UTF-8')
-
+        self.chroot('systemctl enable NetworkManager')
         # TODO: Use python functions for this
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
 
@@ -110,7 +113,7 @@ class Installer():
     def install_profile(self, profile):
         profile = Profile(self, profile)
 
-        log(f'Installing network profile {profile}')
+        log(f'Installing profile {profile.name}')
         profile.install()
 
     def user_create(self, user: str, password=None, groups=[]):
