@@ -66,7 +66,7 @@ class Installer():
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} locale-gen')
 
     def minimal_installation(self):
-        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano'.split(' '))
+        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano networkmanager'.split(' '))
         self.genfstab()
 
         with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
@@ -78,7 +78,7 @@ class Installer():
         # sys_command('/usr/bin/arch-chroot /mnt hwclock --hctosys --localtime')
         self.set_hostname()
         self.set_locale('en_US.UTF-8')
-
+        self.chroot('systemctl enable NetworkManager')
         # TODO: Use python functions for this
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
 

@@ -25,6 +25,6 @@ class Profile:
 			self.packages = instructions['packages']
 		if 'commands' in instructions:
 			self.commands = instructions['commands']
-		self.installer.add_additional_packages(self.packages)
+		self.installer.add_additional_packages(self.packages.split(' '))
 		for cmd in self.commands:
 			self.installer.chroot(cmd)
