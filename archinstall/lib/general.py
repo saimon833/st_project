@@ -47,7 +47,6 @@ def supports_color():
 	"""
     supported_platform = sys.platform != 'win32' or 'ANSICON' in os.environ
 
-    # isatty is not always implemented, #6223.
     is_a_tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
     return supported_platform and is_a_tty
 
@@ -58,10 +57,10 @@ def locate_binary(name):
             for file in files:
                 if file == name:
                     return os.path.join(root, file)
-            break  # Don't recurse
+            break  
 
 
-class sys_command():  # Thread):
+class sys_command():  
     """
 	Stolen from archinstall_gui
 	"""
@@ -122,8 +121,7 @@ class sys_command():  # Thread):
         old_dir = os.getcwd()
         os.chdir(self.exec_dir)
         self.pid, child_fd = pty.fork()
-        if not self.pid:  # Child process
-            # Replace child process with our main process
+        if not self.pid:  
             if not self.kwargs['emulate']:
                 try:
                     os.execv(self.cmd[0], self.cmd)
