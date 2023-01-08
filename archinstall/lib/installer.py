@@ -68,16 +68,12 @@ class Installer():
         self.genfstab()
         
         with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
-            fstab.write('\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n')  # Redundant \n at the start? who knoes?
+            fstab.write('\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n')
 
-        ## TODO: Support locale and timezone
-        # os.remove(f'{self.mountpoint}/etc/localtime')
-        # sys_command(f'/usr/bin/arch-chroot {self.mountpoint} ln -s /usr/share/zoneinfo/{localtime} /etc/localtime')
-        # sys_command('/usr/bin/arch-chroot /mnt hwclock --hctosys --localtime')
         self.set_hostname()
         self.set_locale('en_US.UTF-8')
         self.chroot('systemctl enable NetworkManager')
-        # TODO: Use python functions for this
+
         sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
         return True
 

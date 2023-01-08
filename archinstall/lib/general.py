@@ -188,7 +188,7 @@ class sys_command():  # Thread):
                     if broke:
                         continue
 
-                    ## Adding a exit trigger:
+                    # exit trigger
                     if len(self.kwargs['events']) == 0:
                         if 'debug' in self.kwargs and self.kwargs['debug']:
                             log(f"Waiting for last command {self.cmd[0]} to finish.", origin='spawn', level=4)

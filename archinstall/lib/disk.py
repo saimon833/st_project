@@ -73,8 +73,8 @@ class Partition:
 		self.path = path
 		self.part_id = part_id
 		self.mountpoint = mountpoint
-		self.filesystem = filesystem # TODO: Autodetect if we're reusing a partition
-		self.size = size # TODO: Refresh?
+		self.filesystem = filesystem 
+		self.size = size 
 
 	def __repr__(self, *args, **kwargs):
 		return f'Partition(path={self.path}, fs={self.filesystem}, mounted={self.mountpoint})'
@@ -112,19 +112,11 @@ class Partition:
 			if not fs:
 				if not self.filesystem: raise DiskError(f'Need to format (or define) the filesystem on {self} before mounting.')
 				fs = self.filesystem
-			## libc has some issues with loop devices, defaulting back to sys calls
-		#	ret = libc.mount(self.path.encode(), target.encode(), fs.encode(), 0, options.encode())
-		#	if ret < 0:
-		#		errno = ctypes.get_errno()
-		#		raise OSError(errno, f"Error mounting {self.path} ({fs}) on {target} with options '{options}': {os.strerror(errno)}")
 			if sys_command(f'/usr/bin/mount {self.path} {target}').exit_code == 0:
 				self.mountpoint = target
 				return True
 
 class Filesystem():
-	# TODO:
-	#   When instance of a HDD is selected, check all usages and gracefully unmount them
-	#   as well as close any crypto handles.
 	def __init__(self, blockdevice, mode=GPT):
 		self.blockdevice = blockdevice
 		self.mode = mode
@@ -139,7 +131,6 @@ class Filesystem():
 			raise DiskError(f'Unknown mode selected to format in: {self.mode}')
 
 	def __exit__(self, *args, **kwargs):
-		# TODO: https://stackoverflow.com/questions/28157929/how-to-safely-handle-an-exception-inside-a-context-manager
 		if len(args) >= 2 and args[1]:
 			raise args[1]
 		b''.join(sys_command(f'sync'))
@@ -163,7 +154,7 @@ class Filesystem():
 		self.add_partition('primary', start='1MiB', end='513MiB', format='fat32')
 		self.set_name(0, 'EFI')
 		self.set(0, 'boot on')
-		self.set(0, 'esp on') # TODO: Redundant, as in GPT mode it's an alias for "boot on"? https://www.gnu.org/software/parted/manual/html_node/set.html
+		self.set(0, 'esp on')
 		self.add_partition('primary', start='513MiB', end='100%', format='ext4')
 
 	def add_partition(self, type, start, end, format=None):
@@ -180,7 +171,6 @@ class Filesystem():
 		return self.parted(f'{self.blockdevice.device} set {partition+1} {string}') == 0
 
 def device_state(name, *args, **kwargs):
-	# Based out of: https://askubuntu.com/questions/528690/how-to-get-list-of-all-non-removable-disk-device-names-ssd-hdd-and-sata-ide-onl/528709#528709
 	if os.path.isfile('/sys/block/{}/device/block/{}/removable'.format(name, name)):
 		with open('/sys/block/{}/device/block/{}/removable'.format(name, name)) as f:
 			if f.read(1) == '1':
@@ -196,11 +186,9 @@ def device_state(name, *args, **kwargs):
 					return
 	return True
 
-# lsblk --json -l -n -o path
 def all_disks(*args, **kwargs):
 	if not 'partitions' in kwargs: kwargs['partitions'] = False
 	drives = OrderedDict()
-	#for drive in json.loads(sys_command(f'losetup --json', *args, **lkwargs, hide_from_log=True)).decode('UTF_8')['loopdevices']:
 	for drive in json.loads(b''.join(sys_command(f'lsblk --json -l -n -o path,size,type,mountpoint,label,pkname', *args, **kwargs, hide_from_log=True)).decode('UTF_8'))['blockdevices']:
 		if not kwargs['partitions'] and drive['type'] == 'part': continue
 
