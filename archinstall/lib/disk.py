@@ -106,10 +106,6 @@ class Partition:
                 if (parent := self.find_parent_of(child, name, parent=data['name'])):
                     return parent
 
-    @property
-    def real_device(self):
-        return self.path
-
     def mount(self, target, fs=None, options=''):
         if not self.mountpoint:
             log(f'Mounting {self} to {target}')
@@ -176,23 +172,6 @@ class Filesystem:
 
     def set(self, partition: int, string: str):
         return self.parted(f'{self.blockdevice.device} set {partition + 1} {string}') == 0
-
-
-def device_state(name, *args, **kwargs):
-    if os.path.isfile(f'/sys/block/{name}/device/block/{name}/removable'):
-        with open(f'/sys/block/{name}/device/block/{name}/removable') as f:
-            if f.read(1) == '1':
-                return
-
-    path = ROOT_DIR_PATTERN.sub('', os.readlink(f'/sys/block/{name}'))
-    hotplug_buses = ("usb", "ieee1394", "mmc", "pcmcia", "firewire")
-    for bus in hotplug_buses:
-        if os.path.exists(f'/sys/bus/{bus}'):
-            for device_bus in os.listdir(f'/sys/bus/{bus}/devices'):
-                device_link = ROOT_DIR_PATTERN.sub('', os.readlink(f'/sys/bus/{bus}/devices/{device_bus}'))
-                if re.search(device_link, path):
-                    return
-    return True
 
 
 def all_disks(*args, **kwargs):
