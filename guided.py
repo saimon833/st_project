@@ -6,7 +6,10 @@ archinstall.sys_command(f'umount -R /mnt', surpress_errors=True)
 hard_drive = archinstall.select_disk(archinstall.all_disks())
 hostname = input('Desired hostname for the installation: ')
 if len(hostname) == 0: hostname = 'ArchInstall'
-
+ll = int(archinstall.locales())
+locale = input('Desired locale: ')
+if len(locale) == 0 or locale > ll:
+    locale = 0
 while root_pw := getpass.getpass(prompt='Enter root password (leave blank for no password): '):
     root_pw_verification = getpass.getpass(prompt='And one more time for verification: ')
     if root_pw != root_pw_verification:
@@ -45,7 +48,7 @@ time.sleep(1)
 def perform_installation(device, boot_partition):
     with archinstall.Installer(device, boot_partition=boot_partition, hostname=hostname) as installation:
         archinstall.prerequisit_check()
-        if installation.minimal_installation():
+        if installation.minimal_installation(locale=locale):
             installation.add_bootloader()
 
             if len(packages) and packages[0] != '':

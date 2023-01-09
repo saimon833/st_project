@@ -6,6 +6,8 @@ from .general import *
 from .user_interaction import *
 from .profiles import Profile
 
+avail_locales = ['en_US.UTF-8', 'pl_PL.UTF-8']
+
 
 class Installer():
     def __init__(self, partition, boot_partition, *, profile=None, mountpoint='/mnt', hostname='ArchInstalled'):
@@ -15,6 +17,7 @@ class Installer():
 
         self.partition = partition
         self.boot_partition = boot_partition
+        self.locale = 'en_US.UTF-8'
 
     def __enter__(self, *args, **kwargs):
         self.partition.mount(self.mountpoint)
@@ -57,13 +60,14 @@ class Installer():
             fh.write(self.hostname + '\n')
 
     def set_locale(self, locale, encoding='UTF-8'):
+        self.locale=locale
         with open(f'{self.mountpoint}/etc/locale.gen', 'a') as fh:
             fh.write(f'{locale} {encoding}\n')
         with open(f'{self.mountpoint}/etc/locale.conf', 'w') as fh:
             fh.write(f'LANG={locale}\n')
         self.chroot(f'locale-gen')
 
-    def minimal_installation(self):
+    def minimal_installation(self, locale=0):
         self.pacstrap('base base-devel linux linux-firmware efibootmgr vim networkmanager grub'.split(' '))
         self.gen_fstab()
 
@@ -71,7 +75,7 @@ class Installer():
             fstab.write('\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n')
 
         self.set_hostname()
-        self.set_locale('en_US.UTF-8')
+        self.set_locale(avail_locales[locale])
         self.chroot('systemctl enable NetworkManager')
 
         self.chroot(f'chmod 700 /root')
@@ -106,3 +110,9 @@ class Installer():
         log(f'Setting password for {user}')
         self.chroot(f"sh -c \"echo '{user}:{password}' | chpasswd\"")
         pass
+
+
+def locales():
+    for i in range(len(avail_locales)):
+        log(f'{i}: {avail_locales[i]}')
+    return len(avail_locales)
