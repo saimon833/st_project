@@ -114,5 +114,5 @@ class Installer():
 
 def locales():
     for i in range(len(avail_locales)):
-        log(f'{i}: {avail_locales[i]}')
+        print(f'{i}: {avail_locales[i]}')
     return len(avail_locales)
