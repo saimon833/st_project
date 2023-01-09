@@ -8,7 +8,7 @@ hostname = input('Desired hostname for the installation: ')
 if len(hostname) == 0: hostname = 'ArchInstall'
 ll = int(archinstall.locales())
 locale = input('Desired locale: ')
-if len(locale) == 0 or locale > ll:
+if not locale or locale > ll:
     locale = 0
 while root_pw := getpass.getpass(prompt='Enter root password (leave blank for no password): '):
     root_pw_verification = getpass.getpass(prompt='And one more time for verification: ')
