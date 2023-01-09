@@ -3,7 +3,6 @@ import os, stat
 from .exceptions import *
 from .disk import *
 from .general import *
-from .user_interaction import *
 from .profiles import Profile
 
 avail_locales = ['en_US.UTF-8', 'pl_PL.UTF-8']
