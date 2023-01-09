@@ -1,5 +1,5 @@
 {
-  "packages": "gnome-shell gnome-settings-daemon gdm gnome-console firefox",
+  "packages": "gnome-shell gnome-settings-daemon gdm gnome-console firefox gnome-control-center",
   "commands": [
     "systemctl enable gdm",
     "mkdir /data"

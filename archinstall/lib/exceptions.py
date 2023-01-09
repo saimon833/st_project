@@ -2,6 +2,7 @@
 Adding custom exceptions, making the code more readable.
 """
 
+
 class RequirementError(BaseException):
     pass
 
