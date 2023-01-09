@@ -96,8 +96,9 @@ class sys_command():
             # "which" doesn't work as it's a builin to bash.
             # It used to work, but for whatever reason it doesn't anymore. So back to square one..
 
-            # log('Worker command is not executed with absolute path, trying to find: {}'.format(self.cmd[0]), origin='spawn', level=5)
-            # log('This is the binary {} for {}'.format(o.decode('UTF-8'), self.cmd[0]), origin='spawn', level=5)
+            # log('Worker command is not executed with absolute path, trying to find: {}'.format(self.cmd[0]),
+            # origin='spawn', level=5) log('This is the binary {} for {}'.format(o.decode('UTF-8'), self.cmd[0]),
+            # origin='spawn', level=5)
             self.cmd[0] = locate_binary(self.cmd[0])
 
         if not os.path.isdir(self.exec_dir):

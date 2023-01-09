@@ -41,14 +41,14 @@ class Installer():
         else:
             log(f'Could not sync mirrors: {sync_mirrors.exit_code}')
 
-    def chroot(self,cmd):
-        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} {cmd}'))
+    def chroot(self, *cmd):
+        return sys_command(f'/usr/bin/arch-chroot {self.mountpoint} {" ".join(cmd)}')
 
-    def genfstab(self, flags='-Pu'):
+    def gen_fstab(self, flags='-Pu'):
         o = b''.join(sys_command(f'/usr/bin/genfstab -pU {self.mountpoint} >> {self.mountpoint}/etc/fstab'))
         if not os.path.isfile(f'{self.mountpoint}/etc/fstab'):
             raise RequirementError(
-                f'Could not generate fstab, strapping in packages most likely failed (disk out of space?)\n{o}')
+                f'Could not generate fstab\n{o}')
         return True
 
     def set_hostname(self, hostname=None):
@@ -61,12 +61,12 @@ class Installer():
             fh.write(f'{locale} {encoding}\n')
         with open(f'{self.mountpoint}/etc/locale.conf', 'w') as fh:
             fh.write(f'LANG={locale}\n')
-        sys_command(f'/usr/bin/arch-chroot {self.mountpoint} locale-gen')
+        self.chroot(f'locale-gen')
 
     def minimal_installation(self):
-        self.pacstrap('base base-devel linux linux-firmware efibootmgr nano networkmanager grub'.split(' '))
-        self.genfstab()
-        
+        self.pacstrap('base base-devel linux linux-firmware efibootmgr vim networkmanager grub'.split(' '))
+        self.gen_fstab()
+
         with open(f'{self.mountpoint}/etc/fstab', 'a') as fstab:
             fstab.write('\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n')
 
@@ -74,14 +74,16 @@ class Installer():
         self.set_locale('en_US.UTF-8')
         self.chroot('systemctl enable NetworkManager')
 
-        sys_command(f'/usr/bin/arch-chroot {self.mountpoint} chmod 700 /root')
+        self.chroot(f'chmod 700 /root')
         return True
 
     def add_bootloader(self):
         log(f'Adding bootloader to {self.boot_partition}')
-        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-install --target=x86_64-efi '
-                                 f'--efi-directory=/boot --bootloader-id=GRUB'))
-        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} grub-mkconfig -o /boot/grub/grub.cfg'))
+        if (install := self.chroot(f'grub-install --target=x86_64-efi '
+                                   f'--efi-directory=/boot --bootloader-id=GRUB')).exit_code != 0:
+            raise SysCallError(f'Grub installation error\n{install.exit_code}')
+        if (config := self.chroot(f'grub-mkconfig -o /boot/grub/grub.cfg')).exit_code != 0:
+            raise SysCallError(f'Grub configuration file generation failed\n{config.exit_code}')
 
     def add_additional_packages(self, *packages):
         self.pacstrap(*packages)
@@ -92,19 +94,15 @@ class Installer():
         log(f'Installing profile {profile.name}')
         profile.install()
 
-    def user_create(self, user: str, password=None, groups=[]):
+    def user_create(self, user: str, password=None):
         log(f'Creating user {user}')
-        o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} useradd -m -G wheel {user}'))
+        self.chroot(f'useradd -m -G wheel {user}')
         if password:
             self.user_set_pw(user, password)
-        if groups:
-            for group in groups:
-                o = b''.join(sys_command(f'/usr/bin/arch-chroot {self.mountpoint} gpasswd -a {user} {group}'))
-        with open(f'{self.mountpoint}/etc/sudoers.d/{user}','w') as sudo:
+        with open(f'{self.mountpoint}/etc/sudoers.d/{user}', 'w') as sudo:
             sudo.write(f'{user} ALL=(ALL) ALL\n')
 
     def user_set_pw(self, user, password):
         log(f'Setting password for {user}')
-        o = b''.join(
-            sys_command(f"/usr/bin/arch-chroot {self.mountpoint} sh -c \"echo '{user}:{password}' | chpasswd\""))
+        self.chroot(f"sh -c \"echo '{user}:{password}' | chpasswd\"")
         pass
