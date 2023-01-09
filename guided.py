@@ -7,7 +7,7 @@ hard_drive = archinstall.select_disk(archinstall.all_disks())
 hostname = input('Desired hostname for the installation: ')
 if len(hostname) == 0: hostname = 'ArchInstall'
 ll = int(archinstall.locales())
-locale = input('Desired locale: ')
+locale = int(input('Desired locale: '))
 if not locale or locale > ll:
     locale = 0
 while root_pw := getpass.getpass(prompt='Enter root password (leave blank for no password): '):
