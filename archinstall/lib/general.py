@@ -95,6 +95,7 @@ class sys_command():
         try:
             os.execv(self.cmd[0], self.cmd)
         except FileNotFoundError:
+            self.status = 'done'
             log(f"{self.cmd[0]} does not exist.", origin='spawn', level=2)
             self.exit_code = 1
             return False
